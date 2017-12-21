@@ -64,33 +64,39 @@ func (s *ConstructorsSuite) TestStream(t sweet.T) {
 
 func (s *ConstructorsSuite) TestStreamDisconnect(t sweet.T) {
 	var (
-		data      = makeData()
-		closeChan = make(chan bool)
-		flushCh   = make(chan struct{})
-		writer    = &ResponseWriter{httptest.NewRecorder(), closeChan, flushCh}
-		resp      = Stream(
-			ioutil.NopCloser(bytes.NewReader(data)),
-			WithFlush(),
+		data       = makeData()
+		closeChan  = make(chan bool)
+		progressCh = make(chan int)
+		writer     = &ResponseWriter{httptest.NewRecorder(), closeChan, nil}
+		resp       = Stream(
+			&Closer{bytes.NewReader(data), false},
+			WithProgressChan(progressCh),
 		)
 	)
 
 	go func() {
-		// TODO - test error
-		resp.WriteTo(writer)
+		<-progressCh
+		<-progressCh
+		<-progressCh
+		close(closeChan)
+
+		for range progressCh {
+		}
 	}()
 
-	<-flushCh
-	<-flushCh
-	<-flushCh
-	close(closeChan)
+	// TODO - test error
+	resp.WriteTo(writer)
 
 	body := writer.Result().Body
 	defer body.Close()
 	written, _ := ioutil.ReadAll(body)
 
-	n := len(data) / 8 * 3
-	Expect(len(written)).To(Equal(n))
-	Expect(written).To(Equal(data[:n]))
+	Expect(len(written)).To(Or(
+		Equal(len(data)/8*3),
+		Equal(len(data)/8*4),
+	))
+
+	Expect(written).To(Equal(data[:len(written)]))
 }
 
 func (s *ConstructorsSuite) TestStreamFlush(t sweet.T) {
@@ -108,8 +114,8 @@ func (s *ConstructorsSuite) TestStreamFlush(t sweet.T) {
 	defer close(closeChan)
 
 	go func() {
-		defer close(flushCh)
 		resp.WriteTo(writer)
+		close(flushCh)
 	}()
 
 	for i := 0; i < 8; i++ {
@@ -172,6 +178,14 @@ type Closer struct {
 	closed bool
 }
 
+func (c *Closer) Read(buffer []byte) (int, error) {
+	if c.closed {
+		return 0, io.EOF
+	}
+
+	return c.Reader.Read(buffer)
+}
+
 func (c *Closer) Close() error {
 	c.closed = true
 	return nil
@@ -188,5 +202,7 @@ func (r *ResponseWriter) CloseNotify() <-chan bool {
 }
 
 func (r *ResponseWriter) Flush() {
-	r.flushCh <- struct{}{}
+	if r.flushCh != nil {
+		r.flushCh <- struct{}{}
+	}
 }
