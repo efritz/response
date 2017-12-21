@@ -58,16 +58,17 @@ func Stream(rc io.ReadCloser, configs ...StreamConfigFunc) *Response {
 			defer close(config.progress)
 		}
 
-		if cn, ok := w.(http.CloseNotifier); ok {
-			go func() {
-				<-cn.CloseNotify()
-				rc.Close()
-			}()
-		}
-
 		buffer := make([]byte, 32*1024)
 
 		for {
+			if cn, ok := w.(http.CloseNotifier); ok {
+				select {
+				case <-cn.CloseNotify():
+					return nil
+				default:
+				}
+			}
+
 			n, err := rc.Read(buffer)
 			if err != nil {
 				if err == io.EOF {
