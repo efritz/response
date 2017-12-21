@@ -95,6 +95,7 @@ func Stream(rc io.ReadCloser, configs ...StreamConfigFunc) *Response {
 // WithProgressChan instructs Stream to send the number of bytes written
 // to this chan after every successful chunk of data is written. Consumers
 // of this channel should be efficient as this write will block progress.
+// This channel is closed by the WriteTo method.
 func WithProgressChan(progress chan<- int) StreamConfigFunc {
 	return func(s *streamConfig) { s.progress = progress }
 }
