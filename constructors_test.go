@@ -2,6 +2,7 @@ package response
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -84,7 +85,6 @@ func (s *ConstructorsSuite) TestStreamDisconnect(t sweet.T) {
 		}
 	}()
 
-	// TODO - test error
 	resp.WriteTo(writer)
 
 	body := writer.Result().Body
@@ -97,6 +97,24 @@ func (s *ConstructorsSuite) TestStreamDisconnect(t sweet.T) {
 	))
 
 	Expect(written).To(Equal(data[:len(written)]))
+}
+
+func (s *ConstructorsSuite) TestStreamWriteError(t sweet.T) {
+	var (
+		errors      = make(chan error, 1)
+		expectedErr = fmt.Errorf("utoh")
+		handler     = func(err error) { errors <- err }
+		writer      = NewFailingResponseWriter(3, expectedErr)
+		resp        = Stream(&Closer{bytes.NewReader(makeData()), false})
+	)
+
+	defer close(errors)
+
+	resp.AddCallback(handler)
+	resp.WriteTo(writer)
+
+	Eventually(errors).Should(Receive(Equal(expectedErr)))
+	Consistently(errors).ShouldNot(Receive())
 }
 
 func (s *ConstructorsSuite) TestStreamFlush(t sweet.T) {
@@ -167,11 +185,17 @@ func makeData() []byte {
 	return data
 }
 
+//
+// Serialization Data
+
 type SampleJSON struct {
 	PropertyA string `json:"prop_a"`
 	PropertyB string `json:"prop_b"`
 	PropertyC string `json:"prop_c"`
 }
+
+//
+// Mock ReadCloser
 
 type Closer struct {
 	io.Reader
@@ -191,6 +215,9 @@ func (c *Closer) Close() error {
 	return nil
 }
 
+//
+// Mock ResponseWriter with close/flush handles
+
 type ResponseWriter struct {
 	*httptest.ResponseRecorder
 	closeChan chan bool
@@ -205,4 +232,33 @@ func (r *ResponseWriter) Flush() {
 	if r.flushCh != nil {
 		r.flushCh <- struct{}{}
 	}
+}
+
+//
+// Mock ResponseWriter that can fail
+
+type FailingResponseWriter struct {
+	numWrites int
+	maxWrites int
+	err       error
+}
+
+func NewFailingResponseWriter(maxWrites int, err error) *FailingResponseWriter {
+	return &FailingResponseWriter{
+		maxWrites: maxWrites,
+		err:       err,
+	}
+}
+
+func (r *FailingResponseWriter) WriteHeader(int)     {}
+func (r *FailingResponseWriter) Header() http.Header { return http.Header{} }
+
+func (r *FailingResponseWriter) Write(b []byte) (int, error) {
+	r.numWrites++
+
+	if r.numWrites >= r.maxWrites {
+		return 0, r.err
+	}
+
+	return len(b), nil
 }
