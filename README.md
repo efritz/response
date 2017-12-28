@@ -9,7 +9,61 @@ Go library for wrapping HTTP responses.
 
 ## Example
 
-TODO
+The basic usage changes the `http.HandleFunc` slightly. Instead of taking a request
+and a response writer, you take a request and return a response object. This allows
+a more linear flow of logic through http handlers as responses are values instead of
+side-effects.
+
+The basic usage is shown below.
+
+```go
+emptyHandler := func (r *http.Request) *response.Response {
+    return response.Empty(http.StatusNoContent)
+}
+
+http.HandleFunc("/empty", response.Convert(emptyHandler))
+```
+
+There are several convenience constructors like the JSON response constructor shown
+below. This example serializes a map into a JSON object and sets additional headers.
+
+```go
+func (r *http.Request) *response.Response {
+    resp := response.JSON(map[string]interface{}{
+        "foo": "bar",
+        "baz": []int{3, 4, 5},
+    })
+
+    resp.AddHeader("Location", "/foo/bar/baz")
+    resp.AddHeader("X-Request-ID", "1234-567")
+    return resp
+}
+```
+
+There is also support for attaching a reader for streaming a response body. This is
+useful if responses are very large or infinite (for example, a media server or an
+endpoint that returns server-sent events).
+
+```go
+func (r *http.Request) *response.Response {
+    ch := make(chan int)
+
+    go func() {
+        for n := range ch {
+            fmt.Printf("Sent an additional %d bytes of data\n", n)
+        }
+    }()
+
+    return response.Stream(
+        reader,               // Body content (read closer)
+        WithProgressChan(ch), // Monitor how much data was sent to client
+        WithFlush(),          // Enable flushing after every write (32k chunks)
+    )
+}
+```
+
+The `Stream` constructor will watch for client disconnect and discontinue calling
+the reader for additional data.
 
 ## License
 
