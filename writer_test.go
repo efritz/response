@@ -7,23 +7,23 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-type IOSuite struct{}
+type WriterSuite struct{}
 
-func (s *IOSuite) TestWriteAll(t sweet.T) {
+func (s *WriterSuite) TestWriteAll(t sweet.T) {
 	var (
-		w    = newCaptureWriter(2)
+		w    = NewCaptureWriter(2)
 		data = []byte{1, 2, 3, 4, 5, 6, 7, 8, 9, 0}
 	)
 
 	err := writeAll(w, data)
 	Expect(err).To(BeNil())
-	Expect(w.buffer).To(Equal(data))
-	Expect(w.callCount).To(Equal(5))
+	Expect(w.Body).To(Equal(data))
+	Expect(w.numWrites).To(Equal(5))
 }
 
-func (s *IOSuite) TestWriteAllError(t sweet.T) {
+func (s *WriterSuite) TestWriteAllError(t sweet.T) {
 	var (
-		w    = &failingWriter{newCaptureWriter(2)}
+		w    = &failingWriter{NewCaptureWriter(2)}
 		data = []byte{1, 2, 3, 4, 5, 6, 7, 8, 9, 0}
 	)
 
@@ -34,12 +34,12 @@ func (s *IOSuite) TestWriteAllError(t sweet.T) {
 // Writer that returns an error
 
 type failingWriter struct {
-	*captureWriter
+	*CaptureWriter
 }
 
 func (w *failingWriter) Write(p []byte) (int, error) {
-	n, err := w.captureWriter.Write(p)
-	if len(w.captureWriter.buffer) > 5 {
+	n, err := w.CaptureWriter.Write(p)
+	if len(w.CaptureWriter.Body) > 5 {
 		return 0, errors.New("utoh")
 	}
 

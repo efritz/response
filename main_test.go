@@ -16,6 +16,6 @@ func TestMain(m *testing.M) {
 
 		s.AddSuite(&ResponseSuite{})
 		s.AddSuite(&ConstructorsSuite{})
-		s.AddSuite(&IOSuite{})
+		s.AddSuite(&WriterSuite{})
 	})
 }
