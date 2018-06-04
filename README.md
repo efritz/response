@@ -2,8 +2,8 @@
 
 [![GoDoc](https://godoc.org/github.com/efritz/response?status.svg)](https://godoc.org/github.com/efritz/response)
 [![Build Status](https://secure.travis-ci.org/efritz/response.png)](http://travis-ci.org/efritz/response)
-[![Code Coverage](http://codecov.io/github/efritz/response/coverage.svg?branch=master)](http://codecov.io/github/efritz/response?branch=master)
-[![Go Report Card](https://goreportcard.com/badge/github.com/efritz/response)](https://goreportcard.com/report/github.com/efritz/response)
+[![Maintainability](https://api.codeclimate.com/v1/badges/69a8d691fd23fd17cc35/maintainability)](https://codeclimate.com/github/efritz/response/maintainability)
+[![Test Coverage](https://api.codeclimate.com/v1/badges/69a8d691fd23fd17cc35/test_coverage)](https://codeclimate.com/github/efritz/response/test_coverage)
 
 Go library for wrapping HTTP responses.
 
