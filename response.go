@@ -38,9 +38,9 @@ func Convert(f HandlerFunc) http.HandlerFunc {
 // This method is meant for testing and a subsequent call to WriteTo
 // will write an empty body.
 func Serialize(r *Response) ([]byte, error) {
-	w := newCaptureWriter(0)
+	w := NewCaptureWriter(0)
 	err := r.writer(w)
-	return w.buffer, err
+	return w.Body, err
 }
 
 func newResponse(writer bodyWriter) *Response {

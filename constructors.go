@@ -70,15 +70,17 @@ func Stream(rc io.ReadCloser, configs ...StreamConfigFunc) *Response {
 			}
 
 			n, err := rc.Read(buffer)
+			if n > 0 {
+				if err := writeAll(w, buffer[0:n]); err != nil {
+					return err
+				}
+			}
+
 			if err != nil {
 				if err == io.EOF {
 					return nil
 				}
 
-				return err
-			}
-
-			if err := writeAll(w, buffer[0:n]); err != nil {
 				return err
 			}
 
