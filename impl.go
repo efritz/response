@@ -70,15 +70,33 @@ func (r *response) AddCallback(f CallbackFunc) Response {
 }
 
 // DecorateWriter wraps a function around the underlying io.Writer which
-// writes the response body content. This
+// writes the response body content. This method will wrap the decorated
+// writer with a CloseNotify method which is delegated from the edge
+// response writer. Once the body writer is evaluated to completion, the
+// decorated writer is closed.
 func (r *response) DecorateWriter(f WriterDecorator) Response {
 	baseWriter := r.writer
 
 	r.writer = func(w io.Writer) error {
-		return baseWriter(delegateCloseNotify(f(w), w))
+		decorated := f(w)
+		err := baseWriter(delegateCloseNotify(decorated, w))
+		return tryClose(decorated, err)
 	}
 
 	return r
+}
+
+// tryClose attempts to close the given writer. The original error is
+// returned if non-nil. Otherwise, the error result from the Close method
+// is returned.
+func tryClose(w io.Writer, originalErr error) error {
+	if c, ok := w.(io.Closer); ok {
+		if err := c.Close(); originalErr == nil {
+			return err
+		}
+	}
+
+	return originalErr
 }
 
 // delegateCloseNotify bundles a CloseNotify method with writer w1 if w2
