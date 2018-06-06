@@ -100,20 +100,27 @@ func (r *response) WriteTo(w http.ResponseWriter) {
 	}
 
 	r.written = true
-	header := w.Header()
+	r.writeHeader(w)
+	err := r.writeBody(w)
 
+	for _, c := range r.callbacks {
+		c(err)
+	}
+}
+
+func (r *response) writeHeader(w http.ResponseWriter) {
+	header := w.Header()
 	for k, v := range r.header {
 		header[k] = v
 	}
 
 	w.WriteHeader(r.statusCode)
+}
 
-	var err error
-	if r.writer != nil {
-		err = r.writer(w)
+func (r *response) writeBody(w http.ResponseWriter) error {
+	if r.writer == nil {
+		return nil
 	}
 
-	for _, c := range r.callbacks {
-		c(err)
-	}
+	return r.writer(w)
 }
