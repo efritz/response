@@ -2,6 +2,7 @@ package response
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -44,6 +45,22 @@ func (s *ImplementationSuite) TestDecorateWriter(t sweet.T) {
 	body, err := Serialize(resp)
 	Expect(err).To(BeNil())
 	Expect(body).To(Equal([]byte("ABCDEFG")))
+}
+
+func (s *ImplementationSuite) TestDecorateWriterCloseError(t sweet.T) {
+	r := ioutil.NopCloser(bytes.NewReader([]byte(`abcdefg`)))
+	resp := Stream(r)
+
+	resp.DecorateWriter(func(w io.Writer) io.Writer {
+		write := func(p []byte) (int, error) {
+			return w.Write(upperBytes(p))
+		}
+
+		return &failCloser{WriterFunc(write)}
+	})
+
+	_, err := Serialize(resp)
+	Expect(err).To(MatchError("utoh"))
 }
 
 func upperBytes(p []byte) []byte {
@@ -100,4 +117,15 @@ func (r *infiniteReader) Read(p []byte) (int, error) {
 	p[2] = '3'
 	p[3] = '4'
 	return 4, nil
+}
+
+//
+//
+
+type failCloser struct {
+	io.Writer
+}
+
+func (c *failCloser) Close() error {
+	return fmt.Errorf("utoh")
 }
