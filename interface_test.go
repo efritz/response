@@ -10,9 +10,9 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-type ConversionSuite struct{}
+type InterfaceSuite struct{}
 
-func (s *ConversionSuite) TestConvert(t sweet.T) {
+func (s *InterfaceSuite) TestConvert(t sweet.T) {
 	var (
 		errors = make(chan error, 2)
 		c1     = func(err error) { errors <- err }

@@ -6,13 +6,12 @@ import (
 
 // CaptureWriter is an http.ResponseWriter that saves all of the data to
 // memory to be referenced later. This can be used in place of a standard
-// http.ResponseWriter for testing purposes (as used in this library), or
-// to convert or adapt an HTTP response in-flight.
+// http.ResponseWriter for testing purposes (as used in this library).
 type CaptureWriter struct {
-	numWrites  int
 	StatusCode int
 	Body       []byte
 	header     http.Header
+	numWrites  int
 	chunkSize  int
 }
 

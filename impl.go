@@ -6,48 +6,26 @@ import (
 )
 
 type (
-	// Response wraps a payload returned from an HTTP handler function.
-	Response interface {
-		// StatusCode retrieves the status code of the response.
-		StatusCode() int
-
-		// Header retrieves the first value set to this header.
-		Header(header string) string
-
-		// SetStatusCode sets the status code of the response.
-		SetStatusCode(statusCode int) Response
-
-		// SetHeader sets the value of this header.
-		SetHeader(header, val string) Response
-
-		// AddHeader adds another value to this header.
-		AddHeader(header, val string) Response
-
-		// AddCallback registers a callback to be invoked on after
-		// the entire response body has been written to the client.
-		// If any error occurred during the send, it is made available
-		// to the function registered here.
-		AddCallback(f func(error)) Response
-
-		// WriteTo writes the response data to the ResponseWriter. This method
-		// consumes the body content and will panic when called multiple times.
-		WriteTo(w http.ResponseWriter)
-	}
-
+	// response implements the Response interface.
 	response struct {
 		statusCode int
 		header     http.Header
-		writer     func(io.Writer) error
-		callbacks  []func(error)
+		writer     bodyWriter
+		callbacks  []CallbackFunc
 		written    bool
 	}
+
+	// bodyWriter is the core of a response - it's a function that
+	// takes an io.Writer (generally a response writer) and serializes
+	// the response body to it.
+	bodyWriter func(io.Writer) error
 )
 
 // ensure we conform to interface
 var _ Response = &response{}
 
 // newResponse creates a response with the given body writer.
-func newResponse(writer func(io.Writer) error) Response {
+func newResponse(writer bodyWriter) Response {
 	return &response{
 		statusCode: http.StatusOK,
 		header:     make(http.Header),
@@ -83,13 +61,42 @@ func (r *response) AddHeader(header, val string) Response {
 	return r
 }
 
-// AddCallback registers a callback to be invoked on after
-// the entire response body has been written to the client.
-// If any error occurred during the send, it is made available
-// to the function registered here.
-func (r *response) AddCallback(f func(error)) Response {
+// AddCallback registers a callback to be invoked on after the entire
+// response body has been written to the client. If any error occurred
+// during the send, it is made available to the function registered here.
+func (r *response) AddCallback(f CallbackFunc) Response {
 	r.callbacks = append(r.callbacks, f)
 	return r
+}
+
+// DecorateWriter wraps a function around the underlying io.Writer which
+// writes the response body content. This
+func (r *response) DecorateWriter(f WriterDecorator) Response {
+	baseWriter := r.writer
+
+	r.writer = func(w io.Writer) error {
+		return baseWriter(delegateCloseNotify(f(w), w))
+	}
+
+	return r
+}
+
+// delegateCloseNotify bundles a CloseNotify method with writer w1 if w2
+// is a close notifier. The channel returned by the new method will close
+// when the close notification channel of writer w2 closes.
+func delegateCloseNotify(w1, w2 io.Writer) io.Writer {
+	if cn, ok := w2.(http.CloseNotifier); ok {
+		ch := make(chan bool)
+
+		go func() {
+			<-cn.CloseNotify()
+			close(ch)
+		}()
+
+		return &closeableWriter{w1, ch}
+	}
+
+	return w1
 }
 
 // WriteTo writes the response data to the ResponseWriter. This method
@@ -108,6 +115,7 @@ func (r *response) WriteTo(w http.ResponseWriter) {
 	}
 }
 
+// writeHeader writes the headers and status code to the response writer.
 func (r *response) writeHeader(w http.ResponseWriter) {
 	header := w.Header()
 	for k, v := range r.header {
@@ -117,6 +125,8 @@ func (r *response) writeHeader(w http.ResponseWriter) {
 	w.WriteHeader(r.statusCode)
 }
 
+// writeBody writes the entire body to the response writer (if any writer
+// is supplied).
 func (r *response) writeBody(w http.ResponseWriter) error {
 	if r.writer == nil {
 		return nil

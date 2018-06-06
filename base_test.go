@@ -45,3 +45,9 @@ func (s *BaseSuite) TestJSON(t sweet.T) {
 	Expect(r.Header("Content-Type")).To(Equal("application/json"))
 	Expect(Serialize(r)).To(MatchJSON(`{"prop_a":"foo","prop_b":"bar","prop_c":"baz"}`))
 }
+
+type SampleJSON struct {
+	PropertyA string `json:"prop_a"`
+	PropertyB string `json:"prop_b"`
+	PropertyC string `json:"prop_c"`
+}

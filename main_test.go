@@ -14,10 +14,10 @@ func TestMain(m *testing.M) {
 	sweet.Run(m, func(s *sweet.S) {
 		s.RegisterPlugin(junit.NewPlugin())
 
-		s.AddSuite(&ResponseSuite{})
+		s.AddSuite(&InterfaceSuite{})
+		s.AddSuite(&ImplementationSuite{})
 		s.AddSuite(&BaseSuite{})
 		s.AddSuite(&StreamSuite{})
-		s.AddSuite(&ConversionSuite{})
-		s.AddSuite(&UtilSuite{})
+		s.AddSuite(&IOUtilSuite{})
 	})
 }

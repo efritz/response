@@ -1,15 +1,13 @@
 package response
 
 import (
-	"errors"
-
 	"github.com/aphistic/sweet"
 	. "github.com/onsi/gomega"
 )
 
-type UtilSuite struct{}
+type IOUtilSuite struct{}
 
-func (s *UtilSuite) TestWriteAll(t sweet.T) {
+func (s *IOUtilSuite) TestWriteAll(t sweet.T) {
 	var (
 		w    = NewCaptureWriter(2)
 		data = []byte{1, 2, 3, 4, 5, 6, 7, 8, 9, 0}
@@ -21,27 +19,11 @@ func (s *UtilSuite) TestWriteAll(t sweet.T) {
 	Expect(w.numWrites).To(Equal(5))
 }
 
-func (s *UtilSuite) TestWriteAllError(t sweet.T) {
+func (s *IOUtilSuite) TestWriteAllError(t sweet.T) {
 	var (
 		w    = &failingWriter{NewCaptureWriter(2)}
 		data = []byte{1, 2, 3, 4, 5, 6, 7, 8, 9, 0}
 	)
 
 	Expect(writeAll(w, data)).To(MatchError("utoh"))
-}
-
-//
-// Writer that returns an error
-
-type failingWriter struct {
-	*CaptureWriter
-}
-
-func (w *failingWriter) Write(p []byte) (int, error) {
-	n, err := w.CaptureWriter.Write(p)
-	if len(w.CaptureWriter.Body) > 5 {
-		return 0, errors.New("utoh")
-	}
-
-	return n, err
 }
