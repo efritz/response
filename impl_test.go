@@ -28,7 +28,7 @@ func (s *ImplementationSuite) TestSetters(t sweet.T) {
 	Expect(resp.AddHeader("X-Foo", "bonk")).To(Equal(resp))
 	Expect(resp.Header("X-Foo")).To(Equal("baz"))
 
-	w := NewCaptureWriter(0)
+	w := httptest.NewRecorder()
 	resp.WriteTo(w)
 	Expect(w.Header()["X-Foo"]).To(Equal([]string{"baz", "bonk"}))
 }
@@ -65,14 +65,14 @@ func (s *ImplementationSuite) TestDecorateWriterCloseNotifier(t sweet.T) {
 	go func() {
 		defer close(ch)
 
-		w := &decoratedCaptureWriter{
-			NewCaptureWriter(0),
+		w := &decoratedRecorder{
+			httptest.NewRecorder(),
 			closeChan,
 			nil,
 		}
 
 		resp.WriteTo(w)
-		ch <- string(w.Body)
+		ch <- string(w.Body.Bytes())
 	}()
 
 	close(closeChan)
@@ -87,4 +87,17 @@ func (s *ImplementationSuite) TestMultipleWriteToCallsPanics(t sweet.T) {
 
 	// This one is not
 	Expect(func() { resp.WriteTo(httptest.NewRecorder()) }).To(Panic())
+}
+
+//
+//
+
+type infiniteReader struct{}
+
+func (r *infiniteReader) Read(p []byte) (int, error) {
+	p[0] = '1'
+	p[1] = '2'
+	p[2] = '3'
+	p[3] = '4'
+	return 4, nil
 }

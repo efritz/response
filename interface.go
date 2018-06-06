@@ -3,6 +3,7 @@ package response
 import (
 	"io"
 	"net/http"
+	"net/http/httptest"
 )
 
 type (
@@ -52,13 +53,13 @@ type (
 // This method is meant for testing and a subsequent call to WriteTo
 // will write an empty body.
 func Serialize(r Response) ([]byte, error) {
-	w := NewCaptureWriter(0)
+	w := httptest.NewRecorder()
 
 	var err error
 	r.AddCallback(func(e error) { err = e })
 	r.WriteTo(w)
 
-	return w.Body, err
+	return w.Body.Bytes(), err
 }
 
 // Convert converts a HandlerFunc to an http.HandlerFunc.

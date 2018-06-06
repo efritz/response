@@ -3,7 +3,10 @@ package response
 import (
 	"bytes"
 	"fmt"
+	"io"
 	"io/ioutil"
+	"net/http"
+	"net/http/httptest"
 
 	"github.com/aphistic/sweet"
 	. "github.com/onsi/gomega"
@@ -28,7 +31,7 @@ func (s *StreamSuite) TestStreamDisconnect(t sweet.T) {
 		data       = makeData()
 		closeChan  = make(chan bool)
 		progressCh = make(chan int)
-		writer     = &decoratedCaptureWriter{NewCaptureWriter(0), closeChan, nil}
+		writer     = &decoratedRecorder{httptest.NewRecorder(), closeChan, nil}
 		resp       = Stream(
 			&closer{bytes.NewReader(data), false},
 			WithProgressChan(progressCh),
@@ -46,7 +49,7 @@ func (s *StreamSuite) TestStreamDisconnect(t sweet.T) {
 	}()
 
 	resp.WriteTo(writer)
-	body := writer.CaptureWriter.Body
+	body := writer.ResponseRecorder.Body.Bytes()
 
 	Expect(len(body)).To(Or(
 		Equal(len(data)/8*3),
@@ -79,7 +82,7 @@ func (s *StreamSuite) TestStreamFlush(t sweet.T) {
 		data      = makeData()
 		closeChan = make(chan bool)
 		flushCh   = make(chan struct{})
-		writer    = &decoratedCaptureWriter{NewCaptureWriter(0), closeChan, flushCh}
+		writer    = &decoratedRecorder{httptest.NewRecorder(), closeChan, flushCh}
 		resp      = Stream(
 			ioutil.NopCloser(bytes.NewReader(data)),
 			WithFlush(),
@@ -130,6 +133,9 @@ func (s *StreamSuite) TestStreamProgress(t sweet.T) {
 	Expect(progressCh).To(BeClosed())
 }
 
+//
+//
+
 func makeData() []byte {
 	data := []byte{}
 	for i := 0; i < 32*1024; i++ {
@@ -137,4 +143,58 @@ func makeData() []byte {
 	}
 
 	return data
+}
+
+//
+//
+
+type closer struct {
+	io.Reader
+	closed bool
+}
+
+func (c *closer) Read(buffer []byte) (int, error) {
+	if c.closed {
+		return 0, io.EOF
+	}
+
+	return c.Reader.Read(buffer)
+}
+
+func (c *closer) Close() error {
+	c.closed = true
+	return nil
+}
+
+//
+//
+
+type failingResponseWriter struct {
+	numWrites int
+	maxWrites int
+	err       error
+}
+
+func NewFailingResponseWriter(maxWrites int, err error) *failingResponseWriter {
+	return &failingResponseWriter{
+		maxWrites: maxWrites,
+		err:       err,
+	}
+}
+
+func (r *failingResponseWriter) WriteHeader(int) {
+}
+
+func (r *failingResponseWriter) Header() http.Header {
+	return http.Header{}
+}
+
+func (r *failingResponseWriter) Write(b []byte) (int, error) {
+	r.numWrites++
+
+	if r.numWrites >= r.maxWrites {
+		return 0, r.err
+	}
+
+	return len(b), nil
 }
