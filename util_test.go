@@ -7,9 +7,9 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-type WriterSuite struct{}
+type UtilSuite struct{}
 
-func (s *WriterSuite) TestWriteAll(t sweet.T) {
+func (s *UtilSuite) TestWriteAll(t sweet.T) {
 	var (
 		w    = NewCaptureWriter(2)
 		data = []byte{1, 2, 3, 4, 5, 6, 7, 8, 9, 0}
@@ -21,7 +21,7 @@ func (s *WriterSuite) TestWriteAll(t sweet.T) {
 	Expect(w.numWrites).To(Equal(5))
 }
 
-func (s *WriterSuite) TestWriteAllError(t sweet.T) {
+func (s *UtilSuite) TestWriteAllError(t sweet.T) {
 	var (
 		w    = &failingWriter{NewCaptureWriter(2)}
 		data = []byte{1, 2, 3, 4, 5, 6, 7, 8, 9, 0}

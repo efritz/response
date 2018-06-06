@@ -1,7 +1,6 @@
 package response
 
 import (
-	"io"
 	"net/http"
 )
 
@@ -46,20 +45,4 @@ func (w *CaptureWriter) Write(p []byte) (int, error) {
 	w.numWrites++
 	w.Body = append(w.Body, p...)
 	return len(p), nil
-}
-
-//
-// Helpers
-
-func writeAll(w io.Writer, data []byte) error {
-	for len(data) > 0 {
-		n, err := w.Write(data)
-		if err != nil {
-			return err
-		}
-
-		data = data[n:]
-	}
-
-	return nil
 }

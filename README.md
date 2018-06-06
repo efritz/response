@@ -17,7 +17,7 @@ side-effects.
 The basic usage is shown below.
 
 ```go
-emptyHandler := func (r *http.Request) *response.Response {
+emptyHandler := func (r *http.Request) response.Response {
     return response.Empty(http.StatusNoContent)
 }
 
@@ -28,7 +28,7 @@ There are several convenience constructors like the JSON response constructor sh
 below. This example serializes a map into a JSON object and sets additional headers.
 
 ```go
-func (r *http.Request) *response.Response {
+func (r *http.Request) response.Response {
     resp := response.JSON(map[string]interface{}{
         "foo": "bar",
         "baz": []int{3, 4, 5},
@@ -45,7 +45,7 @@ useful if responses are very large or infinite (for example, a media server or a
 endpoint that returns server-sent events).
 
 ```go
-func (r *http.Request) *response.Response {
+func (r *http.Request) response.Response {
     ch := make(chan int)
 
     go func() {
