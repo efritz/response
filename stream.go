@@ -42,7 +42,7 @@ func Stream(rc io.ReadCloser, configs ...StreamConfigFunc) Response {
 		f(config)
 	}
 
-	return NewResponse(func(w io.Writer) error {
+	return newResponse(func(w io.Writer) error {
 		defer rc.Close()
 
 		if config.progress != nil {

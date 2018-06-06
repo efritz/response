@@ -23,8 +23,11 @@ type (
 		// AddHeader adds another value to this header.
 		AddHeader(header, val string) Response
 
-		// AddCallback registers a callback to be invoked on completion.
-		AddCallback(f CallbackFunc) Response
+		// AddCallback registers a callback to be invoked on after
+		// the entire response body has been written to the client.
+		// If any error occurred during the send, it is made available
+		// to the function registered here.
+		AddCallback(f func(error)) Response
 
 		// WriteTo writes the response data to the ResponseWriter. This method
 		// consumes the body content and will panic when called multiple times.
@@ -34,27 +37,17 @@ type (
 	response struct {
 		statusCode int
 		header     http.Header
-		writer     BodyWriter
-		callbacks  []CallbackFunc
+		writer     func(io.Writer) error
+		callbacks  []func(error)
 		written    bool
 	}
-
-	// CallbackFunc can be registered to a response that is called after
-	// the entire response body has been written to the client. If any
-	// error occurred during the send, it is made available here.
-	CallbackFunc func(error)
-
-	// BodyWriter is the core of a response object - it takes a writer
-	// (Which may be an http.ResponseWriter) and serializes itself to
-	// it.
-	BodyWriter func(io.Writer) error
 )
 
 // ensure we conform to interface
 var _ Response = &response{}
 
-// NewResponse creates a response with the given body writer.
-func NewResponse(writer BodyWriter) Response {
+// newResponse creates a response with the given body writer.
+func newResponse(writer func(io.Writer) error) Response {
 	return &response{
 		statusCode: http.StatusOK,
 		header:     make(http.Header),
@@ -90,8 +83,11 @@ func (r *response) AddHeader(header, val string) Response {
 	return r
 }
 
-// AddCallback registers a callback to be invoked on completion.
-func (r *response) AddCallback(f CallbackFunc) Response {
+// AddCallback registers a callback to be invoked on after
+// the entire response body has been written to the client.
+// If any error occurred during the send, it is made available
+// to the function registered here.
+func (r *response) AddCallback(f func(error)) Response {
 	r.callbacks = append(r.callbacks, f)
 	return r
 }

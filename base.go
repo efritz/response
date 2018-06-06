@@ -7,7 +7,7 @@ import (
 
 // Respond creates a response with the given body.
 func Respond(data []byte) Response {
-	return NewResponse(func(w io.Writer) error {
+	return newResponse(func(w io.Writer) error {
 		return writeAll(w, data)
 	})
 }

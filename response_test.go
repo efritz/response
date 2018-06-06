@@ -11,7 +11,7 @@ import (
 type ResponseSuite struct{}
 
 func (s *ResponseSuite) TestSetters(t sweet.T) {
-	resp := NewResponse(nil)
+	resp := newResponse(nil)
 	Expect(resp.StatusCode()).To(Equal(http.StatusOK))
 	Expect(resp.SetStatusCode(http.StatusNotFound)).To(Equal(resp))
 	Expect(resp.StatusCode()).To(Equal(http.StatusNotFound))
