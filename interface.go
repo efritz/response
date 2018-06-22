@@ -49,17 +49,30 @@ type (
 	HandlerFunc func(*http.Request) Response
 )
 
-// Serialize reads the entire response and returns it as a byte slice.
-// This method is meant for testing and a subsequent call to WriteTo
-// will write an empty body.
-func Serialize(r Response) ([]byte, error) {
+// Serialize reads the entire response and returns the headers and a
+// byte slice containing the content of the entire body. An error is
+// returned if writing to the response recorder fails.
+func Serialize(r Response) (http.Header, []byte, error) {
 	w := httptest.NewRecorder()
 
 	var err error
 	r.AddCallback(func(e error) { err = e })
 	r.WriteTo(w)
 
-	return w.Body.Bytes(), err
+	return w.HeaderMap, w.Body.Bytes(), err
+}
+
+// Reconstruct creates a response from the values returned from Serialize.
+func Reconstruct(statusCode int, headers http.Header, body []byte) Response {
+	resp := Respond(body).SetStatusCode(statusCode)
+
+	for k, vs := range headers {
+		for _, v := range vs {
+			resp.AddHeader(k, v)
+		}
+	}
+
+	return resp
 }
 
 // Convert converts a HandlerFunc to an http.HandlerFunc.

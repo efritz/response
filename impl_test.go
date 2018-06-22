@@ -42,7 +42,7 @@ func (s *ImplementationSuite) TestDecorateWriter(t sweet.T) {
 		return WriterFunc(func(p []byte) (int, error) { return w.Write(upperBytes(p)) })
 	})
 
-	body, err := Serialize(resp)
+	_, body, err := Serialize(resp)
 	Expect(err).To(BeNil())
 	Expect(body).To(Equal([]byte("ABCDEFG")))
 }
@@ -59,7 +59,7 @@ func (s *ImplementationSuite) TestDecorateWriterCloseError(t sweet.T) {
 		return &failCloser{WriterFunc(write)}
 	})
 
-	_, err := Serialize(resp)
+	_, _, err := Serialize(resp)
 	Expect(err).To(MatchError("utoh"))
 }
 

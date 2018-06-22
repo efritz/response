@@ -17,11 +17,15 @@ func (s *BaseSuite) TestRespond(t sweet.T) {
 
 	r1 := Respond(data1)
 	Expect(r1.StatusCode()).To(Equal(http.StatusOK))
-	Expect(Serialize(r1)).To(Equal(data1))
+	_, body, err := Serialize(r1)
+	Expect(err).To(BeNil())
+	Expect(body).To(Equal(data1))
 
 	r2 := Respond(data2)
 	Expect(r2.StatusCode()).To(Equal(http.StatusOK))
-	Expect(Serialize(r2)).To(Equal(data2))
+	_, body, err = Serialize(r2)
+	Expect(err).To(BeNil())
+	Expect(body).To(Equal(data2))
 }
 
 func (s *BaseSuite) TestEmpty(t sweet.T) {
@@ -43,7 +47,9 @@ func (s *BaseSuite) TestJSON(t sweet.T) {
 
 	r := JSON(payload)
 	Expect(r.Header("Content-Type")).To(Equal("application/json"))
-	Expect(Serialize(r)).To(MatchJSON(`{"prop_a":"foo","prop_b":"bar","prop_c":"baz"}`))
+	_, body, err := Serialize(r)
+	Expect(err).To(BeNil())
+	Expect(body).To(MatchJSON(`{"prop_a":"foo","prop_b":"bar","prop_c":"baz"}`))
 }
 
 type SampleJSON struct {

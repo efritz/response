@@ -22,7 +22,9 @@ func (s *StreamSuite) TestStream(t sweet.T) {
 	)
 
 	Expect(closer.closed).To(BeFalse())
-	Expect(Serialize(resp)).To(Equal(data))
+	_, body, err := Serialize(resp)
+	Expect(err).To(BeNil())
+	Expect(body).To(Equal(data))
 	Expect(closer.closed).To(BeTrue())
 }
 
@@ -116,7 +118,9 @@ func (s *StreamSuite) TestStreamProgress(t sweet.T) {
 		)
 	)
 
-	Expect(Serialize(resp)).To(Equal(data))
+	_, body, err := Serialize(resp)
+	Expect(err).To(BeNil())
+	Expect(body).To(Equal(data))
 
 	// Note: buffered channel should have all data, so we're
 	// not using Eventually/Should method pairs - don't wait

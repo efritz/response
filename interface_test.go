@@ -12,6 +12,25 @@ import (
 
 type InterfaceSuite struct{}
 
+func (s *InterfaceSuite) TestRoundTripSerialize(t sweet.T) {
+	resp1 := JSON(map[string]interface{}{"foo": []int{1, 2, 3}})
+	resp1.SetStatusCode(http.StatusAccepted)
+	resp1.AddHeader("foo", "bar")
+	resp1.AddHeader("foo", "baz")
+	resp1.AddHeader("bar", "bonk")
+
+	headers1, body1, err := Serialize(resp1)
+	Expect(err).To(BeNil())
+
+	resp2 := Reconstruct(resp1.StatusCode(), headers1, body1)
+	headers2, body2, err := Serialize(resp2)
+	Expect(err).To(BeNil())
+
+	Expect(headers1).To(Equal(headers2))
+	Expect(body1).To(Equal(body2))
+	Expect(resp1.StatusCode()).To(Equal(resp2.StatusCode()))
+}
+
 func (s *InterfaceSuite) TestConvert(t sweet.T) {
 	var (
 		errors = make(chan error, 2)
