@@ -51,7 +51,12 @@ func (r *response) SetStatusCode(statusCode int) Response {
 
 // SetHeader sets the value of this header.
 func (r *response) SetHeader(header, val string) Response {
-	r.header.Set(header, val)
+	if val == "" {
+		r.header.Del(header)
+	} else {
+		r.header.Set(header, val)
+	}
+
 	return r
 }
 
