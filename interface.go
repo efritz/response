@@ -64,10 +64,13 @@ func Serialize(r Response) (http.Header, []byte, error) {
 
 // Reconstruct creates a response from the values returned from Serialize.
 func Reconstruct(statusCode int, headers http.Header, body []byte) Response {
-	resp := Respond(body).SetStatusCode(statusCode)
+	resp := Respond(body)
+	resp.SetStatusCode(statusCode)
 
 	for k, vs := range headers {
-		for _, v := range vs {
+		resp.SetHeader(k, vs[0])
+
+		for _, v := range vs[1:] {
 			resp.AddHeader(k, v)
 		}
 	}
